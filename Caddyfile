@@ -5,3 +5,11 @@
     encode gzip zstd
     log
 }
+
+# Simble sub-stack (crm + web)
+simble.{$DOMAIN} {
+    reverse_proxy /api/* campaign-manager:4000
+    reverse_proxy web:8080
+    encode gzip zstd
+    log
+}

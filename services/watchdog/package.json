@@ -1,0 +1,14 @@
+{
+  "name": "@simble/watchdog",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Monitors textbee device health and alerts via Telegram on outages",
+  "main": "index.js",
+  "scripts": { "start": "node index.js" },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "dotenv": "^16.4.5"
+  },
+  "engines": { "node": ">=20" }
+}

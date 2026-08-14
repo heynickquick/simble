@@ -56,6 +56,21 @@ services:
     expose:
       - "4000"
 
+  web:
+    build: ./web
+    restart: unless-stopped
+    networks: [internal]
+    expose:
+      - "8080"
+
+  watchdog:
+    build: ./services/watchdog
+    restart: unless-stopped
+    env_file: ./services/watchdog/.env
+    networks: [internal]
+    depends_on:
+      - campaign-manager
+
 volumes:
   caddy_data:
   caddy_config:

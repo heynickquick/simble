@@ -1,18 +1,6 @@
 services:
-  caddy:
-    image: caddy:2
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    networks: [internal]
-    depends_on:
-      - textbee-api
-      - textbee-web
+  # Caddy removed — using existing system nginx with certbot for SSL.
+  # Run deploy/setup-nginx.sh on the VPS to set up the vhost.
 
   textbee-api:
     build: ./textbee/api

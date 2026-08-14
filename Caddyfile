@@ -1,13 +1,13 @@
-{$DOMAIN} {
+# Textbee stack: sms.simble.unscale.cloud
+sms.{$DOMAIN} {
     reverse_proxy /api/* textbee-api:3000
-    reverse_proxy /crm/* campaign-manager:4000
     reverse_proxy textbee-web:3000
     encode gzip zstd
     log
 }
 
-# Simble sub-stack (crm + web)
-simble.{$DOMAIN} {
+# Simble stack: simble.unscale.cloud (the main product)
+{$DOMAIN} {
     reverse_proxy /api/* campaign-manager:4000
     reverse_proxy web:8080
     encode gzip zstd

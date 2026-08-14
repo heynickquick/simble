@@ -1,0 +1,11 @@
+.env
+.env.local
+infra/firebase-credentials.json
+textbee/
+backups/
+node_modules/
+*.log
+.DS_Store
+.idea/
+.vscode/
+*.swp

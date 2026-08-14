@@ -1,0 +1,66 @@
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [internal]
+    depends_on:
+      - api
+      - web
+
+  api:
+    build: ./textbee/api
+    restart: unless-stopped
+    env_file: .env
+    networks: [internal]
+    depends_on:
+      - mongodb
+    expose:
+      - "3000"
+
+  web:
+    build: ./textbee/web
+    restart: unless-stopped
+    env_file: .env
+    networks: [internal]
+    expose:
+      - "3000"
+
+  mongodb:
+    image: mongo:7
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE}
+    volumes:
+      - mongo_data:/data/db
+    networks: [internal]
+    expose:
+      - "27017"
+
+  campaign-manager:
+    build: ./services/campaign-manager
+    restart: unless-stopped
+    env_file: ./services/campaign-manager/.env
+    networks: [internal]
+    depends_on:
+      - mongodb
+    expose:
+      - "4000"
+
+volumes:
+  caddy_data:
+  caddy_config:
+  mongo_data:
+
+networks:
+  internal:
+    driver: bridge

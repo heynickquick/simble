@@ -1,7 +1,7 @@
 {$DOMAIN} {
-    reverse_proxy /api/* api:3000
+    reverse_proxy /api/* textbee-api:3000
     reverse_proxy /crm/* campaign-manager:4000
-    reverse_proxy web:3000
+    reverse_proxy textbee-web:3000
     encode gzip zstd
     log
 }

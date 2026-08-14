@@ -11,10 +11,10 @@ services:
       - caddy_config:/config
     networks: [internal]
     depends_on:
-      - api
-      - web
+      - textbee-api
+      - textbee-web
 
-  api:
+  textbee-api:
     build: ./textbee/api
     restart: unless-stopped
     env_file: .env
@@ -24,7 +24,7 @@ services:
     expose:
       - "3000"
 
-  web:
+  textbee-web:
     build: ./textbee/web
     restart: unless-stopped
     env_file: .env

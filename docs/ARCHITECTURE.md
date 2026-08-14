@@ -1,30 +1,57 @@
 # Simble — Architecture
 
-## Phase 1 — textbee foundation
+## Current state (deployed on VPS)
+
 ```
-Asuncion, PY (Nick)
-   - web browser → textbee dashboard
-       │
-       │ HTTPS
-       ▼
-Hostinger KVM 4, US East
-   - Caddy (SSL termination, auto Let's Encrypt)
-   - textbee API (NestJS, port 3000)
-   - textbee Web (Next.js, port 3000)
-   - MongoDB 7 (port 27017, internal only)
-       │
-       │ HTTPS REST (phone polls API)
-       ▼
-Friend's house, USA
-   - WiFi
-   - 2-3 Android phones (Pixel 3a, Samsung A20, Moto G7)
-   - Each: Tello/Mint SIM, textbee app, charging 24/7
+                    ┌──────────────────────────────────────┐
+                    │  Asuncion, Paraguay (Nick)           │
+                    │  - browser → http://72.60.63.202:8880│
+                    └──────────────┬───────────────────────┘
+                                   │ HTTPS (eventually)
+                                   ▼
+                    ┌──────────────────────────────────────┐
+                    │  Hostinger KVM 4, US East            │
+                    │  IP: 72.60.63.202                    │
+                    │                                      │
+                    │  ┌──────────────┐  ┌──────────────┐  │
+                    │  │  web (nginx) │  │  watchdog    │  │
+                    │  │  :8080→8880  │  │  (polls textbee)  │
+                    │  └──────┬───────┘  └──────┬───────┘  │
+                    │         │                 │           │
+                    │  ┌──────▼─────────────────▼──────┐   │
+                    │  │  campaign-manager (Express)    │   │
+                    │  │  :4000 (also host:4000)        │   │
+                    │  │  - JWT auth                    │   │
+                    │  │  - clients/contacts/campaigns  │   │
+                    │  │  - throttled send              │   │
+                    │  └──────┬─────────────────────────┘   │
+                    │         │                              │
+                    │  ┌──────▼─────────┐                   │
+                    │  │  mongodb:7     │                   │
+                    │  │  :27017        │                   │
+                    │  └────────────────┘                   │
+                    │                                      │
+                    │  (textbee-api + textbee-web: not yet  │
+                    │   running — needs Firebase)           │
+                    └──────────────────────────────────────┘
+                                   │
+                                   │ (when textbee is up)
+                                   ▼
+                    ┌──────────────────────────────────────┐
+                    │  Friend's house, USA                 │
+                    │  - 2-3 Android phones                 │
+                    │  - Tello/Mint SIMs                   │
+                    │  - textbee app                       │
+                    │  - Charging 24/7                     │
+                    └──────────────────────────────────────┘
 ```
 
 ## Phase 2 — multi-client campaign-manager
+
 ```
-Client web UI  →  campaign-manager  →  textbee  →  Android phone  →  SMS
-   (browser)       (Node + Mongo)      (REST)       (FCM + carrier)
+Client web UI (Vue 3, port 8880)
+  →  campaign-manager (Node + Express + Mongoose, port 4000)
+  →  textbee (port 3000)  →  Android phone  →  SMS
 ```
 
 `campaign-manager` (built in `services/campaign-manager/`):
@@ -35,24 +62,22 @@ Client web UI  →  campaign-manager  →  textbee  →  Android phone  →  SMS
 - Scheduled-campaign tick (every 30s)
 - Stripe-ready (Phase 4)
 
-playSMS is no longer in the stack — the campaign-manager replaces it with a smaller, more focused service.
+## Phase 3 — watchdog
 
-## Phase 3 — friend-site reliability
-```
-Friend's house additions:
-   - Raspberry Pi Zero 2W watchdog
-   - cron: pings each phone's gateway endpoint every 60s
-   - alert: Telegram message to Nick if any phone offline >5 min
-   - APC UPS for ~30 min ride-through
-   - Anker 6-port USB hub for phone charging
-```
+`watchdog` (built in `services/watchdog/`):
+- Polls each textbee device's status endpoint every 60s
+- If a device is offline for >5 min, sends a Telegram alert
+- Recovery alert when device comes back online
+- One-time startup notification
+- Cooldown between repeat alerts (default 30 min)
 
 ## Phase 5 — multi-channel
+
 ```
 campaign-manager
         │
         ├── SMS adapter    → textbee  (already wired)
-        ├── Telegram       → Bot API (free)            [next up]
+        ├── Telegram       → Bot API (free)            [next]
         ├── WhatsApp       → Meta Cloud API ($0.005-0.09/conv)
         ├── Viber          → Business Messages API
         ├── Line           → Official Account API

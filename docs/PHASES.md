@@ -1,24 +1,13 @@
 # Simble — Project Phases
 
-## Phase 1 — textbee foundation (week 1)
-- [x] Research: identified textbee as best fit
-- [x] Gameplan written
-- [x] Project scaffolded at `C:\Users\Nick\projects\simble\`
-  - [x] AGENTS.md, README.md, .env.example, .gitignore
-  - [x] docker-compose.yml + Caddyfile
-  - [x] deploy/setup-vps.sh + deploy/first-deploy.sh
-  - [x] runbook/FRIEND-RUNBOOK.md
-  - [x] infra/firebase-setup.md
-  - [x] docs/ARCHITECTURE.md, ECONOMICS.md, PHASES.md
-- [ ] VPS provisioned (Hostinger KVM 4, US East, Ubuntu 24.04)
-- [ ] VPS hardened (`deploy/setup-vps.sh` run)
-- [ ] textbee docker-compose deployed (`deploy/first-deploy.sh`)
-- [ ] DNS A record + SSL (Caddy auto-cert)
-- [ ] Firebase project created + creds in `.env`
+## Phase 1 — textbee stack on VPS ⏳ IN PROGRESS
+- [x] textbee source cloned to `~/simble/textbee` on VPS
+- [x] docker-compose up for mongodb + campaign-manager
+- [ ] textbee-api + textbee-web brought up (needs Firebase config — blocked on Nick's Google account)
 - [ ] First phone paired via QR
 - [ ] First SMS sent end-to-end
 
-## Phase 2 — campaign-manager (week 2-3) ✅ scaffolded, 🟡 needs deployment
+## Phase 2 — campaign-manager ✅ DEPLOYED
 - [x] `services/campaign-manager/` scaffold built (16 files, ~600 LOC)
 - [x] Mongoose models: Client, Contact, Campaign
 - [x] JWT auth, per-client contact isolation
@@ -28,29 +17,31 @@
 - [x] Scheduled-campaign tick
 - [x] Docker service wired into docker-compose.yml
 - [x] Caddy route `/crm/*` → campaign-manager
-- [ ] Local end-to-end test (need textbee instance + test device)
+- [x] **Deployed and validated end-to-end on VPS** (smoke test passed all 8 endpoints)
 - [ ] Stripe billing integration
-- [ ] Web UI for campaign-manager (currently API-only; clients use the dashboard for SMS, but need a campaign UI)
+- [x] **Web UI** (`web/`) — login, dashboard, contacts, campaigns, settings. Deployed on port 8880.
 
-## Phase 3 — friend-site hardware kit (week 3)
-- [ ] Hardware ordered (3 phones, Pi Zero 2W, UPS, USB hub)
-- [ ] Friend runbook laminated and shipped
-- [ ] Pi watchdog deployed (Telegram alert if phone offline >5 min)
-- [ ] UPS tested (power outage simulation)
-- [ ] Hardware shipped to friend
-- [ ] Friend-side setup verified end-to-end
+## Phase 3 — friend-site reliability 🟡 PARTIALLY DONE
+- [x] **Watchdog service built** (`services/watchdog/`) — polls textbee, alerts via Telegram
+- [x] Watchdog deployed on VPS
+- [ ] Watchdog needs real DEVICE_IDS + Telegram bot token to actually alert
+- [ ] Friend-site hardware kit (phones, Pi, UPS, smart plug) — needs purchase
+- [ ] Friend runbook (already exists, needs printing)
+- [ ] UPS + smart plug setup guide
+- [ ] Power outage recovery test
 
-## Phase 4 — economics validation
+## Phase 4 — economics validation ⏳ PENDING
+- [x] Economics doc (`docs/ECONOMICS.md`)
 - [ ] Per-client pricing model finalized
-- [ ] Stripe integration (or local Paraguay payment method)
+- [ ] Stripe integration
 - [ ] First 3 paying clients
 - [ ] Margin analysis at scale
 - [ ] 10DLC research (for future high-volume tiers)
 
-## Phase 5 — multi-channel expansion
-- [ ] Channel adapter interface defined
-- [ ] Telegram adapter (easiest first — free, no approval)
-- [ ] WhatsApp Cloud adapter (Meta Business verification)
+## Phase 5 — multi-channel expansion ⏳ NEXT
+- [ ] Channel adapter interface in campaign-manager
+- [ ] Telegram adapter (free, easiest first)
+- [ ] WhatsApp Cloud adapter (Meta Business verification needed)
 - [ ] Viber adapter
 - [ ] Line adapter
 - [ ] Zalo adapter
@@ -63,3 +54,14 @@
 - 10DLC registration (defer until real A2P demand)
 - Voice (different problem, different gateway)
 - MMS (textbee supports it but not a marketing use case)
+
+## How to deploy
+```bash
+# from local: commit + push
+cd C:\Users\Nick\projects\simble
+git add . && git commit -m "..." && git push
+
+# on VPS: pull + deploy
+ssh cwai
+bash /tmp/deploy.sh  # (or copy deploy/deploy-vps.sh to /tmp and run)
+```

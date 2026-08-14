@@ -3,6 +3,16 @@
 ## Purpose
 Self-hosted mobile messaging marketing platform. Send SMS from your own SIM cards, expand to multi-channel (WhatsApp, Telegram, Viber, Line, Zalo) for international markets. Run by Nick Quick from Asuncion, Paraguay; hardware (phones + SIMs) lives at a friend's house in the USA.
 
+## If you're a new agent picking this up
+
+**Read [HANDOFF.md](HANDOFF.md) first.** It has the full context, the current state, the immediate blocker (Firebase), and specific tasks to do. Then come back here for project memory.
+
+## Current blocker
+
+textbee-api (the SMS gateway backend) is **down because Firebase is not configured.** Firebase Cloud Messaging (FCM) is how textbee pushes "send this SMS" commands to the Android app. Without it, textbee-api crashes at boot.
+
+**To unblock:** create a Firebase project, fill in the `FIREBASE_*` env vars on the VPS, rebuild textbee-android with the `google-services.json` embedded, install the APK on Nick's phone, pair via QR code at https://sms.simble.unscale.cloud. Full step-by-step in HANDOFF.md.
+
 ## Architecture (high level)
 - **VPS** (Hostinger KVM 4, US East): runs textbee API + web + MongoDB + **campaign-manager** + **web UI** + **watchdog** + Caddy
 - **Friend's house (USA)**: 2-3 spare Android phones, each with Tello/Mint SIM, running textbee Android app

@@ -1,4 +1,4 @@
-# Economics
+# Simble — Economics
 
 ## Operating cost (3-phone deployment at friend's house)
 

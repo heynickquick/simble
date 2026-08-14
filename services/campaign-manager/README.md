@@ -1,6 +1,6 @@
 # Campaign Manager
 
-Multi-tenant SMS campaign management service for the msg-platform stack.
+Multi-tenant SMS campaign management service for the Simble platform.
 
 Sits between clients (web users) and textbee (SMS gateway). Handles per-client accounts, contact lists, campaigns, quotas, throttled sending, and delivery report ingestion.
 

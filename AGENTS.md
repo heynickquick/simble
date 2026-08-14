@@ -1,7 +1,7 @@
-# Mobile Messaging Marketing Platform
+# Simble
 
 ## Purpose
-Self-hosted SMS marketing platform that uses consumer SIMs (US) instead of Twilio/A2P routes, expandable to multi-channel (WhatsApp, Telegram, Viber, Line, Zalo) for international markets. Run by Nick Quick from Asuncion, Paraguay; hardware (phones + SIMs) lives at a friend's house in the USA.
+Self-hosted mobile messaging marketing platform. Send SMS from your own SIM cards, expand to multi-channel (WhatsApp, Telegram, Viber, Line, Zalo) for international markets. Run by Nick Quick from Asuncion, Paraguay; hardware (phones + SIMs) lives at a friend's house in the USA.
 
 ## Architecture (high level)
 - **VPS** (Hostinger KVM 4, US East): runs textbee API + web + MongoDB + **campaign-manager** + Caddy
@@ -15,6 +15,13 @@ Self-hosted SMS marketing platform that uses consumer SIMs (US) instead of Twili
 - **Reverse proxy + SSL**: Caddy (auto Let's Encrypt)
 - **Database**: MongoDB 7 (shared between textbee and campaign-manager — separate DBs)
 - **OS**: Ubuntu 24.04 LTS on Hostinger KVM 4 (4 vCPU, 8GB RAM, 200GB NVMe)
+
+## Infrastructure
+- **VPS**: Hostinger, IP `72.60.63.202`, hostname `srv1399138`
+- **SSH access**: `ssh cwai` (alias in `~/.ssh/config`, key: `id_ed25519_hostinger`)
+- **Already provisioned**: Docker 29.6.1 installed, Ubuntu 24.04.4 LTS
+- **Pending**: deploy user creation, SSH hardening, UFW/fail2ban, project clone + deploy
+- **Domain**: TBD (need a domain for `sms.<domain>` and `crm.<domain>`)
 
 > **Why we replaced playSMS with our own campaign-manager:** playSMS would have meant a separate PHP stack, a custom gateway plugin, and a user model that doesn't match multi-tenant SaaS. A 600-LOC Node service does the same job, fits the existing data layer, and gives us a clean foundation for the multi-channel adapters in Phase 5.
 

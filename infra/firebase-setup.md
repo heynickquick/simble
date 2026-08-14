@@ -6,7 +6,7 @@ textbee uses Firebase Cloud Messaging (FCM) to push commands to the Android app 
 
 ### 1. Create Firebase project
 - Go to https://console.firebase.google.com
-- Click "Add project" — name it (e.g. `msg-platform-prod`)
+- Click "Add project" — name it (e.g. `simble-prod`)
 - Disable Google Analytics (not needed)
 - Click Create
 

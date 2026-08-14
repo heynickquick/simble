@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Idempotent VPS setup for msg-platform
+# Idempotent VPS setup for simble
 # - Ubuntu 24.04 LTS
 # - Non-root deploy user with sudo
 # - SSH key only, fail2ban, UFW
@@ -105,7 +105,7 @@ echo "  1. Test SSH as deploy user from a new terminal:"
 echo "     ssh $DEPLOY_USER@<this-ip> -p $SSH_PORT"
 echo "  2. Verify Docker works for deploy user:"
 echo "     docker run hello-world"
-echo "  3. Clone msg-platform repo and run deploy/first-deploy.sh"
+echo "  3. Clone simble repo and run deploy/first-deploy.sh"
 echo ""
 echo "WARNING: if you ran this over SSH as $DEPLOY_USER,"
 echo "you will be disconnected. Reconnect as $DEPLOY_USER@<this-ip>."

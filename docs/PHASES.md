@@ -1,9 +1,9 @@
-# Project Phases
+# Simble — Project Phases
 
 ## Phase 1 — textbee foundation (week 1)
 - [x] Research: identified textbee as best fit
 - [x] Gameplan written
-- [x] Project scaffolded at `C:\Users\Nick\projects\msg-platform\`
+- [x] Project scaffolded at `C:\Users\Nick\projects\simble\`
   - [x] AGENTS.md, README.md, .env.example, .gitignore
   - [x] docker-compose.yml + Caddyfile
   - [x] deploy/setup-vps.sh + deploy/first-deploy.sh

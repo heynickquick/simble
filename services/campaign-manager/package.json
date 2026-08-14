@@ -1,9 +1,9 @@
 {
-  "name": "@msg-platform/campaign-manager",
+  "name": "@simble/campaign-manager",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Multi-tenant SMS campaign manager for the msg-platform stack",
+  "description": "Multi-tenant SMS campaign manager for the Simble platform",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",

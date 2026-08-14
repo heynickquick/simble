@@ -1,4 +1,4 @@
-# Architecture
+# Simble — Architecture
 
 ## Phase 1 — textbee foundation
 ```

@@ -1,6 +1,6 @@
-# Mobile Messaging Marketing Platform
+# Simble
 
-Self-hosted SMS gateway + campaign management, expanding to multi-channel (WhatsApp, Telegram, Viber, Line, Zalo) for international markets.
+Self-hosted mobile messaging marketing platform. Send SMS from your own SIM cards, expand to WhatsApp, Telegram, Viber, Line, Zalo. No Twilio, no per-message fees.
 
 **Status:** Phase 1 (textbee foundation). See [docs/PHASES.md](docs/PHASES.md).
 
@@ -40,8 +40,8 @@ bash <(curl -fsSL https://raw.githubusercontent.com/YOUR_REPO/main/deploy/setup-
 ### 3. Clone this repo + textbee
 ```bash
 ssh deploy@YOUR_VPS_IP
-git clone https://github.com/YOUR_GH_USER/msg-platform.git ~/msg-platform
-cd ~/msg-platform
+git clone https://github.com/heynickquick/simble.git ~/simble
+cd ~/simble
 git clone --depth 1 https://github.com/vernu/textbee.git textbee
 cp .env.example .env
 # Edit .env: DOMAIN, JWT_SECRET, MONGO passwords, Firebase creds
@@ -67,7 +67,7 @@ Point `sms.yourdomain.com` to VPS IP. Caddy auto-issues Let's Encrypt.
 
 ## Repository layout
 ```
-msg-platform/
+simble/
 ├── README.md                  # this file
 ├── AGENTS.md                  # project memory for AI agents
 ├── .env.example               # secrets template

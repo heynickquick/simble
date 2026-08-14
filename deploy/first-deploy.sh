@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# First-time deploy of msg-platform
+# First-time deploy of simble
 # Assumes: VPS is hardened, this repo + textbee subdir are cloned, .env is filled in
 
-REPO_DIR="${REPO_DIR:-$HOME/msg-platform}"
+REPO_DIR="${REPO_DIR:-$HOME/simble}"
 cd "$REPO_DIR"
 
 echo "==> Validating .env"

@@ -11,6 +11,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import morgan from 'morgan';
 import cors from 'cors';
+import QRCode from 'qrcode';
 import 'dotenv/config';
 
 import { Message } from './src/models/Message.js';
@@ -47,6 +48,35 @@ app.get('/devices/:token/status', async (req, res, next) => {
     const device = await Device.findOne({ token: req.params.token });
     if (!device) return res.status(404).json({ error: 'not found' });
     res.json({ online: device.online, lastSeen: device.lastSeen, name: device.name });
+  } catch (e) { next(e); }
+});
+
+// ===== QR code for device pairing =====
+// Returns an HTML page with a QR code the user can scan with the phone app.
+// The QR encodes a URL: simble://pair?server=<server>&token=<token>
+app.get('/devices/:token/qr', async (req, res, next) => {
+  try {
+    const device = await Device.findOne({ token: req.params.token });
+    if (!device) return res.status(404).json({ error: 'device not found' });
+    const server = (req.query.server || process.env.PUBLIC_URL || `${req.protocol}://${req.get('host')}`).toString();
+    const payload = `simble://pair?server=${encodeURIComponent(server)}&token=${encodeURIComponent(device.token)}`;
+    const qrDataUrl = await QRCode.toDataURL(payload, { width: 320, margin: 2 });
+    res.set('Content-Type', 'text/html').send(`<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Pair ${device.name} — Simble</title>
+<style>body{font-family:system-ui,sans-serif;background:#f5f5f5;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:20px}
+.card{background:white;border-radius:12px;padding:32px;box-shadow:0 2px 8px rgba(0,0,0,0.1);max-width:400px;text-align:center}
+h1{margin:0 0 8px;font-size:24px}
+.muted{color:#666;font-size:14px;margin:0 0 24px}
+img{border:1px solid #eee;border-radius:8px;display:block;margin:0 auto 16px}
+code{background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:12px;word-break:break-all}
+</style></head>
+<body><div class="card">
+<h1>${device.name}</h1>
+<p class="muted">Open Simble Gateway on the Android phone, tap "Set up", then "Scan QR code" and point at this.</p>
+<img src="${qrDataUrl}" alt="QR code" />
+<p class="muted">Server</p><code>${server}</code>
+<p class="muted" style="margin-top:16px">Token</p><code>${device.token}</code>
+</div></body></html>`);
   } catch (e) { next(e); }
 });
 

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Simble Gateway"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="20dp" />
+
+        <TextView android:id="@+id/tvService"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Service: —"
+            android:textSize="16sp"
+            android:padding="12dp"
+            android:background="#E8F5E9"
+            android:layout_marginBottom="12dp" />
+
+        <TextView android:id="@+id/tvServer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Server: —"
+            android:padding="4dp" />
+
+        <TextView android:id="@+id/tvDevice"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Device: —"
+            android:padding="4dp" />
+
+        <TextView android:id="@+id/tvToken"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Token: —"
+            android:padding="4dp"
+            android:layout_marginBottom="20dp" />
+
+        <TextView android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Statistics"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <TextView android:id="@+id/tvSent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Sent: 0"
+            android:padding="4dp" />
+
+        <TextView android:id="@+id/tvDelivered"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Delivered: 0"
+            android:padding="4dp" />
+
+        <TextView android:id="@+id/tvFailed"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Failed: 0"
+            android:padding="4dp"
+            android:layout_marginBottom="20dp" />
+
+        <Button android:id="@+id/btnStartStop"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Start service"
+            android:layout_marginBottom="8dp" />
+
+        <Button android:id="@+id/btnRequestBattery"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Disable battery optimization"
+            android:layout_marginBottom="8dp" />
+
+        <Button android:id="@+id/btnSetup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Reconfigure server"
+            android:layout_marginBottom="8dp" />
+
+        <Button android:id="@+id/btnUnpair"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Unpair device"
+            android:backgroundTint="#FFCDD2"
+            android:textColor="#B71C1C" />
+    </LinearLayout>
+</ScrollView>

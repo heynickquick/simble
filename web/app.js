@@ -71,10 +71,16 @@ const app = createApp({
     async function login(e) {
       e?.preventDefault();
       busy.value = true; err.value = '';
-      debug.value = `Sending: email="${email.value}" password.length=${password.value.length}`;
-      console.log('[simble] login attempt', { email: email.value, pwLen: password.value.length });
+      const pw = password.value;
+      // Show enough about the password to spot typos / autofill / spaces, but
+      // never the full value (so we can paste a screenshot without leaking).
+      const masked = pw.length > 0
+        ? `${pw[0] === ' ' ? '␣' : pw[0]}…${pw[pw.length-1] === ' ' ? '␣' : pw[pw.length-1]} (len=${pw.length}, charCodes=${[...pw].map(c => c.charCodeAt(0)).join(',')})`
+        : '(empty)';
+      debug.value = `Sending: email="${email.value}"\npassword = ${masked}`;
+      console.log('[simble] login attempt', { email: email.value, pwLen: pw.length, pwCodes: [...pw].map(c => c.charCodeAt(0)) });
       try {
-        const r = await api('POST', '/api/auth/login', { email: email.value, password: password.value });
+        const r = await api('POST', '/api/auth/login', { email: email.value, password: pw });
         debug.value = `Got 200 OK. token length=${r.token?.length}, email=${r.client?.email}, role=${r.client?.role}`;
         console.log('[simble] login OK', r.client);
         localStorage.setItem('simble_token', r.token);
@@ -82,7 +88,7 @@ const app = createApp({
         await afterLogin();
       } catch (e) {
         err.value = e.message;
-        debug.value = `Error: ${e.message}`;
+        debug.value = `Error: ${e.message}\n(sent email="${email.value}", password length=${pw.length}, charCodes=${[...pw].map(c => c.charCodeAt(0)).join(',')})`;
         console.error('[simble] login failed', e);
       }
       busy.value = false;

@@ -9,10 +9,12 @@ services:
     networks: [internal]
     depends_on:
       - mongodb
+    environment:
+      - PORT=3001
     ports:
-      - "3010:3000"  # host:3010 → textbee-api:3000
+      - "3010:3001"  # host:3010 → textbee-api:3001
     expose:
-      - "3000"
+      - "3001"
 
   textbee-web:
     build: ./textbee/web

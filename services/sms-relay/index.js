@@ -116,6 +116,13 @@ app.post('/messages', serverAuthMiddleware, async (req, res, next) => {
       return res.status(429).json({ error: 'hourly_cap_reached', limit: device.smsPerHour, retryable: true });
     }
 
+    // Reserve a slot in the hourly cap immediately — the SMS is going to be sent
+    // (or attempted) by the phone, so it counts toward the cap regardless of
+    // whether delivery succeeds. This way the cap protects the SIM even when
+    // many campaigns queue up before the phone polls.
+    device.smsThisHour += 1;
+    await device.save();
+
     const msg = await Message.create({
       deviceId: device._id,
       to, message, clientId, campaignId,
@@ -179,12 +186,8 @@ app.post('/devices/:token/messages/:id/report', authMiddleware, async (req, res,
     if (status === 'failed') msg.failedAt = new Date();
     await msg.save();
 
-    // Increment the hourly counter on successful send
-    if (status === 'delivered' || status === 'sent') {
-      device.resetHourlyIfNeeded();
-      device.smsThisHour += 1;
-      await device.save();
-    }
+    // The hourly counter was already incremented when the message was queued
+    // (in POST /messages), so we don't need to touch it here.
 
     res.json({ ok: true, status: msg.status });
   } catch (e) { next(e); }

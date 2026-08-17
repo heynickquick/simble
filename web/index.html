@@ -21,6 +21,7 @@
       <label>Password <input type="password" v-model="password" required autocomplete="current-password" /></label>
       <button type="submit" :disabled="busy">{{ busy ? 'Signing in…' : 'Sign in' }}</button>
       <p class="error" v-if="err">{{ err }}</p>
+      <pre v-if="debug" style="font-size:11px;background:#f5f5f5;padding:8px;border-radius:4px;margin-top:12px;white-space:pre-wrap;word-break:break-all;color:#333">{{ debug }}</pre>
       <p class="muted small">Need an account? <a href="#" @click.prevent="showSignup=!showSignup">{{ showSignup ? 'Sign in instead' : 'Create one' }}</a></p>
       <div v-if="showSignup" class="signup">
         <label>Name <input v-model="suName" required /></label>

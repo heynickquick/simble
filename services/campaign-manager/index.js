@@ -48,8 +48,13 @@ const PORT = Number(process.env.PORT || 4000);
 const start = async () => {
   if (!process.env.MONGODB_URI) throw new Error('MONGODB_URI required');
   if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET required');
-  if (!process.env.TEXTBEE_API_URL) throw new Error('TEXTBEE_API_URL required');
-  if (!process.env.TEXTBEE_API_KEY) throw new Error('TEXTBEE_API_KEY required');
+  // SMS gateway: at least one must be configured (or MOCK)
+  const MOCK = process.env.SMS_GATEWAY_MOCK === 'true' || process.env.SMS_GATEWAY_MOCK === '1';
+  const hasRelay = process.env.SMS_RELAY_URL && process.env.SMS_RELAY_SECRET;
+  const hasTextbee = process.env.TEXTBEE_API_URL && process.env.TEXTBEE_API_KEY;
+  if (!MOCK && !hasRelay && !hasTextbee) {
+    throw new Error('SMS gateway not configured: set SMS_RELAY_URL+SMS_RELAY_SECRET, TEXTBEE_API_URL+TEXTBEE_API_KEY, or SMS_GATEWAY_MOCK=true');
+  }
 
   await mongoose.connect(process.env.MONGODB_URI);
   console.log('mongo: connected');

@@ -37,6 +37,7 @@ const app = createApp({
     const showSignup = ref(false);
     const suName = ref(''); const suDevice = ref('');
     const suErr = ref('');
+    const debug = ref(''); // visible diagnostic so we can see exactly what's being sent
 
     // app state
     const contacts = ref([]); const contactsTotal = ref(0); const contactQuery = ref('');
@@ -70,12 +71,20 @@ const app = createApp({
     async function login(e) {
       e?.preventDefault();
       busy.value = true; err.value = '';
+      debug.value = `Sending: email="${email.value}" password.length=${password.value.length}`;
+      console.log('[simble] login attempt', { email: email.value, pwLen: password.value.length });
       try {
         const r = await api('POST', '/api/auth/login', { email: email.value, password: password.value });
+        debug.value = `Got 200 OK. token length=${r.token?.length}, email=${r.client?.email}, role=${r.client?.role}`;
+        console.log('[simble] login OK', r.client);
         localStorage.setItem('simble_token', r.token);
         view.value = 'app';
         await afterLogin();
-      } catch (e) { err.value = e.message; }
+      } catch (e) {
+        err.value = e.message;
+        debug.value = `Error: ${e.message}`;
+        console.error('[simble] login failed', e);
+      }
       busy.value = false;
     }
 
@@ -149,7 +158,7 @@ const app = createApp({
 
     return {
       view, me, tab, busy, err,
-      email, password, showSignup, suName, suDevice, suErr, login, signup,
+      email, password, showSignup, suName, suDevice, suErr, debug, login, signup,
       contacts, contactsTotal, contactQuery, page, loadContacts,
       campaigns, stats, showCsv, csvText, csvResult, importCsv,
       showNew, newC, selectedContacts, newErr, createCampaign, logout,

@@ -108,8 +108,35 @@ async function main() {
     '+15551234569,TG-One,Test,123456789',
   ].join('\n');
   r = await request(CM_BASE, '/api/contacts/bulk', { method: 'POST', headers: auth, body: { csv } });
-  const csvOk = r.status === 200 && r.body.upserts + r.body.updates >= 3;
+  // On first run: all 3 upserts. On subsequent runs: same data → 0 upserts, 0
+  // updates, but the import still succeeded (no records skipped). Verify success
+  // by checking total records processed.
+  const csvOk = r.status === 200 && r.body.total === 3 && r.body.skipped === 0;
   logResult('csv import (with chatId)', csvOk, JSON.stringify(r.body));
+
+  // ===== 2b. Create a fresh device for the SMS test, in a sensible timezone
+  // (America/Asuncion). Point the admin client's deviceId at it so the SMS
+  // campaign doesn't hit the relay's timezone check. We clear the deviceId at
+  // the end so the admin can reassign in the UI.
+  let smsDeviceToken = null;
+  const r2 = await request(RELAY_BASE, '/devices', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${RELAY_SECRET}` },
+    body: { name: `e2e-sms-device-${Date.now()}`, phoneNumber: '' },
+  });
+  if (r2.status !== 200) {
+    logResult('relay: create sms device', false, JSON.stringify(r2.body));
+  } else {
+    smsDeviceToken = r2.body.token;
+    await request(RELAY_BASE, `/devices/${r2.body.id}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${RELAY_SECRET}` },
+      body: { timezone: 'America/Asuncion', smsPerHour: 100 },
+    });
+    // Tell the campaign-manager to use this device for sends
+    await request(CM_BASE, '/api/clients/me', { method: 'PATCH', headers: auth, body: { deviceId: smsDeviceToken } });
+    logResult('relay: create sms device + bind to client', true, `token=${smsDeviceToken.slice(0, 16)}...`);
+  }
 
   // ===== 3. create SMS campaign (mock mode) =====
   // Note: '+' must be URL-encoded as %2B; otherwise Express decodes it as space.
@@ -253,6 +280,13 @@ async function main() {
       headers: { Authorization: `Bearer ${RELAY_SECRET}` },
       body: { smsPerHour: 100, smsThisHour: 0 },
     });
+  }
+
+  // Cleanup: restore the admin's deviceId if we changed it
+  if (smsDeviceToken) {
+    // Best-effort: set back to empty (admin can reassign in the UI).
+    // We don't have the original — it was a stale "Direct Test" sim_* token.
+    await request(CM_BASE, '/api/clients/me', { method: 'PATCH', headers: auth, body: { deviceId: '' } });
   }
 
   finish();

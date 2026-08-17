@@ -10,11 +10,12 @@ router.get('/me', async (req, res) => {
 
 router.patch('/me', async (req, res, next) => {
   try {
-    const { name, deviceId } = req.body;
+    const { name, deviceId, telegramBotToken } = req.body;
     if (name) req.client.name = name;
-    if (deviceId && req.client.role === 'admin') {
-      // clients can't change their own device; admin can
-      req.client.deviceId = deviceId;
+    if (deviceId) req.client.deviceId = deviceId;
+    if (telegramBotToken !== undefined) {
+      // Allow clients to set their own bot token, or clear it
+      req.client.telegramBotToken = telegramBotToken;
     }
     await req.client.save();
     res.json({ ok: true, client: req.client.toSafeJSON() });
@@ -31,13 +32,14 @@ router.get('/', adminOnly, async (req, res, next) => {
 
 router.patch('/:id', adminOnly, async (req, res, next) => {
   try {
-    const { plan, deviceId, active, limits } = req.body;
+    const { plan, deviceId, active, limits, telegramBotToken } = req.body;
     const c = await Client.findById(req.params.id);
     if (!c) return res.status(404).json({ error: 'not found' });
     if (plan) c.plan = plan;
     if (deviceId) c.deviceId = deviceId;
     if (typeof active === 'boolean') c.active = active;
     if (limits) c.limits = { ...c.limits.toObject(), ...limits };
+    if (telegramBotToken !== undefined) c.telegramBotToken = telegramBotToken;
     await c.save();
     res.json(c.toSafeJSON());
   } catch (e) { next(e); }

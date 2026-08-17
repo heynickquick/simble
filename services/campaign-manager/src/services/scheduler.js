@@ -1,5 +1,27 @@
 import { Campaign } from '../models/Campaign.js';
+import { Contact } from '../models/Contact.js';
 import { sendSms } from './textbee.js';
+import { sendTelegram } from './telegram.js';
+
+/**
+ * Channel dispatcher. Each adapter implements:
+ *   async send({ deviceId, to, message, client }) -> { messageId, status, raw? }
+ * and optionally throws { response: { status, data } } for retryable errors.
+ */
+const channels = {
+  sms: {
+    send: sendSms,
+    // For SMS, "to" is a phone number from Contact.phone
+    getRecipient: (m, contact) => contact.phone,
+  },
+  telegram: {
+    send: sendTelegram,
+    // For Telegram, "to" is the chat_id from Contact.chatId
+    getRecipient: (m, contact) => contact.chatId,
+    // deviceId isn't needed; botToken comes from client
+    getCredentials: (client) => client.getTelegramBotToken(),
+  },
+};
 
 /**
  * Run a campaign end-to-end. Updates the campaign doc as it goes.
@@ -10,11 +32,37 @@ export async function runCampaign(campaign, client) {
   campaign.startedAt = new Date();
   await campaign.save();
 
-  console.log(`[campaign ${campaign._id}] starting, ${campaign.stats.queued} queued`);
+  console.log(`[campaign ${campaign._id}] starting on channel=${campaign.channel}, ${campaign.stats.queued} queued`);
+
+  const channel = channels[campaign.channel] || channels.sms;
+
+  // Look up contacts for chat_id/phone lookup
+  const contacts = await Contact.find({ _id: { $in: campaign.messages.map(m => m.contactId) } });
+  const contactById = new Map(contacts.map(c => [String(c._id), c]));
 
   for (const m of campaign.messages) {
     if (m.status !== 'queued') continue;
     if (campaign.status === 'cancelled') break;
+
+    const contact = contactById.get(String(m.contactId));
+    if (!contact) {
+      m.status = 'failed';
+      m.error = 'contact not found';
+      campaign.stats.queued -= 1;
+      campaign.stats.failed += 1;
+      await campaign.save();
+      continue;
+    }
+
+    const recipient = channel.getRecipient(m, contact);
+    if (!recipient) {
+      m.status = 'failed';
+      m.error = `no ${campaign.channel === 'telegram' ? 'chat_id' : 'phone'} for contact`;
+      campaign.stats.queued -= 1;
+      campaign.stats.failed += 1;
+      await campaign.save();
+      continue;
+    }
 
     m.status = 'sending';
     campaign.stats.queued -= 1;
@@ -22,21 +70,42 @@ export async function runCampaign(campaign, client) {
     await campaign.save();
 
     try {
-      const { messageId } = await sendSms({
-        deviceId: client.deviceId,
-        to: m.phone,
+      const sendArgs = {
+        to: recipient,
         message: campaign.message,
-      });
+      };
+      if (channel.getCredentials) {
+        sendArgs.botToken = channel.getCredentials(client);
+      } else {
+        sendArgs.deviceId = client.deviceId;
+      }
+
+      const result = await channel.send(sendArgs);
       m.status = 'sent';
-      m.externalId = messageId;
+      m.externalId = result.messageId;
       m.sentAt = new Date();
       campaign.stats.sending -= 1;
       campaign.stats.sent += 1;
-      client.usage.smsThisMonth += 1;
-      await client.save();
+      if (campaign.channel === 'sms') {
+        client.usage.smsThisMonth += 1;
+        await client.save();
+      }
     } catch (e) {
+      // Retryable errors (rate limits, send windows) → put back in queue
+      const status = e.response?.status;
+      const errCode = e.response?.data?.error;
+      if (status === 429 && (errCode === 'outside_send_window' || errCode === 'hourly_cap_reached')) {
+        m.status = 'queued';
+        campaign.stats.sending -= 1;
+        campaign.stats.queued += 1;
+        const target = m.phone || `contact=${m.contactId}`;
+        console.log(`[campaign ${campaign._id}] held (${errCode}): ${target}`);
+        // Don't sleep on rate-limit holds — let next tick pick it up
+        continue;
+      }
+      // Non-retryable error
       m.status = 'failed';
-      m.error = e.response?.data?.message || e.message;
+      m.error = e.response?.data?.error || e.message;
       campaign.stats.sending -= 1;
       campaign.stats.failed += 1;
       console.error(`[campaign ${campaign._id}] send failed: ${m.phone} — ${m.error}`);

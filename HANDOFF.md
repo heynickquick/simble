@@ -1,5 +1,7 @@
 # Simble — Handoff Document
 
+> **⚠️ Out of date for Phase 1+.** This doc was written when Simble used `textbee` + Firebase. We've since replaced textbee with our own `sms-relay` + native Kotlin Android app (no FCM, no third-party code). For the current architecture, see `docs/ARCHITECTURE.md`. For what's done vs pending, see `docs/PHASES.md`. This doc is kept for historical context only.
+
 **Read this first if you're picking up development on Simble.**
 
 ## What is Simble?

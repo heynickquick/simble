@@ -21,10 +21,23 @@ router.post('/', async (req, res, next) => {
     if (!name || !message || !Array.isArray(contactIds) || !contactIds.length) {
       return res.status(400).json({ error: 'name, message, contactIds required' });
     }
-    // Confirm contacts belong to this client
-    const owned = await Contact.find({ _id: { $in: contactIds }, clientId: req.client._id }).select('_id phone');
+    if (!['sms', 'telegram'].includes(channel)) {
+      return res.status(400).json({ error: `unsupported channel: ${channel}` });
+    }
+    // Confirm contacts belong to this client, and grab their chatId for telegram
+    const projection = channel === 'telegram' ? '_id phone chatId' : '_id phone';
+    const owned = await Contact.find({ _id: { $in: contactIds }, clientId: req.client._id }).select(projection);
     if (owned.length !== contactIds.length) {
       return res.status(400).json({ error: 'some contactIds are invalid' });
+    }
+    if (channel === 'telegram') {
+      const missing = owned.filter(c => !c.chatId);
+      if (missing.length) {
+        return res.status(400).json({
+          error: 'some contacts missing chatId (required for telegram channel)',
+          missing: missing.map(c => c._id),
+        });
+      }
     }
     const campaign = await Campaign.create({
       clientId: req.client._id,

@@ -33,18 +33,23 @@ router.post('/bulk', async (req, res, next) => {
     if (!csv) return res.status(400).json({ error: 'csv body required' });
     const records = parse(csv, { columns: true, skip_empty_lines: true, trim: true });
     let upserts = 0, updates = 0, skipped = 0;
+    const reserved = new Set(['phone','Phone','PHONE','firstName','first_name','FirstName','lastName','last_name','LastName','chatId','chat_id','ChatId','telegramId','TelegramId','TELEGRAM_ID']);
     for (const r of records) {
       const phone = (r.phone || r.Phone || r.PHONE || '').toString().trim();
       if (!phone) { skipped++; continue; }
+      const chatId = (r.chatId || r.chat_id || r.ChatId || r.telegramId || r.TelegramId || r.TELEGRAM_ID || '').toString().trim();
       const doc = {
         clientId: req.client._id,
         phone,
         firstName: r.firstName || r.first_name || r.FirstName || '',
         lastName: r.lastName || r.last_name || r.LastName || '',
         customFields: Object.fromEntries(
-          Object.entries(r).filter(([k]) => !['phone','Phone','PHONE','firstName','first_name','FirstName','lastName','last_name','LastName'].includes(k))
+          Object.entries(r).filter(([k]) => !reserved.has(k))
         ),
       };
+      // Only overwrite chatId if the CSV actually provides one — don't wipe an
+      // existing chat_id on re-import.
+      if (chatId) doc.chatId = chatId;
       const result = await Contact.updateOne(
         { clientId: doc.clientId, phone: doc.phone },
         { $set: doc },

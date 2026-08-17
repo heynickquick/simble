@@ -7,7 +7,9 @@ const ClientSchema = new mongoose.Schema({
   role: { type: String, enum: ['admin', 'client'], default: 'client' },
   plan: { type: String, enum: ['starter', 'growth', 'agency'], default: 'starter' },
   // textbee device this client sends from (set at signup, admin can change)
-  deviceId: { type: String, required: true },
+  deviceId: { type: String, required: true, default: '' },
+  // Optional: per-client Telegram bot token. If empty, the global TELEGRAM_BOT_TOKEN is used.
+  telegramBotToken: { type: String, default: '' },
   limits: {
     smsPerMonth: { type: Number, default: 500 },
     contactsMax: { type: Number, default: 1000 },
@@ -33,7 +35,12 @@ ClientSchema.methods.resetUsageIfNeeded = function () {
 ClientSchema.methods.toSafeJSON = function () {
   const o = this.toObject();
   delete o.passwordHash;
+  delete o.telegramBotToken; // never expose bot tokens
   return o;
+};
+
+ClientSchema.methods.getTelegramBotToken = function () {
+  return this.telegramBotToken || process.env.TELEGRAM_BOT_TOKEN || '';
 };
 
 export const Client = mongoose.model('Client', ClientSchema);

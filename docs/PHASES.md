@@ -33,17 +33,20 @@
 ## Phase 2 — campaign-manager (multi-tenant CRM) ✅ DEPLOYED
 
 - [x] `services/campaign-manager/` — Node.js + Express + Mongoose
-- [x] Mongoose models: Client, Contact, Campaign
+- [x] Mongoose models: Client, Contact, Campaign (+ Message subdoc)
 - [x] JWT auth, per-client contact isolation
 - [x] Bulk CSV import endpoint
 - [x] Campaign create + throttled send runner (default 1 msg / 2s)
-- [x] textbee delivery webhook receiver (also handles sms-relay reports)
+- [x] Webhook receiver for sms-relay delivery reports
 - [x] Scheduled-campaign tick (every 30s)
 - [x] Stripe-ready data model (plan, limits, usage)
 - [x] Deployed and validated end-to-end on VPS
 - [x] **Web UI** (`web/`) — login, dashboard, contacts, campaigns, settings
 - [x] **SMS gateway adapter** (`src/services/textbee.js`) — supports sms-relay, textbee, or mock mode
 - [x] **HTTPS at https://simble.unscale.cloud** with Let's Encrypt cert
+- [x] **Timezone-aware send window** — `Device.timezone` (IANA string), `sendWindowStartHour`/`EndHour`. Returns 429 `outside_send_window` with `retryable: true` if outside the device's local 9-21 window.
+- [x] **Per-device hourly cap** — `Device.smsPerHour` (default 100), `smsThisHour`, `hourResetAt`. Returns 429 `hourly_cap_reached` with `retryable: true` if the cap is hit. Auto-resets every hour.
+- [x] **CSV import** now also accepts `chatId` (and aliases `chat_id`, `telegramId`, `TELEGRAM_ID`) — empty values don't wipe existing chat_ids on re-import.
 
 **Remaining:**
 - [ ] Stripe billing integration
@@ -55,12 +58,15 @@
 
 ## Phase 3 — friend-site reliability 🟡 PARTIAL
 
-- [x] **Watchdog service** (`services/watchdog/`) — polls textbee/sms-relay device health, alerts via Telegram
+- [x] **Watchdog service** (`services/watchdog/`) — polls device health via sms-relay, alerts via Telegram
 - [x] Watchdog deployed on VPS (running with placeholder config)
+- [x] **Timezone-aware throttling** at the relay (sms-relay refuses to queue sends outside the device's local 9-21 window)
+- [x] **Per-device hourly cap** at the relay (sms-relay refuses to queue sends once `smsThisHour >= smsPerHour`)
+- [x] **Friend runbook** (`runbook/FRIEND-RUNBOOK.md`) — rewritten for the Android-app era, no more Pi, with a troubleshooting table
 - [ ] Watchdog needs real `DEVICE_IDS` + Telegram bot token
-- [ ] Friend-site hardware (2-3 phones, Tello/Mint SIMs, Termux install) — **only the phone-agent setup is left**
-- [ ] Friend runbook (already written at `runbook/FRIEND-RUNBOOK.md`, needs printing)
+- [ ] Friend-site hardware (2-3 phones, Tello/Mint SIMs) — needs APK build + sideload
 - [ ] Power outage recovery test
+- [ ] Print + ship runbook to friend
 
 ---
 
@@ -75,15 +81,19 @@
 
 ---
 
-## Phase 5 — multi-channel expansion ⏳ NEXT
+## Phase 5 — multi-channel expansion 🟡 IN PROGRESS
 
-- [ ] Channel adapter interface formalized in code
-- [ ] **Telegram adapter** (free, easiest first, ~150 LOC, needs bot token from @BotFather)
+- [x] **Channel adapter interface** — `src/services/scheduler.js` has a `channels` dispatcher map. Each entry exposes `send({ to, message, [botToken] | [deviceId] })` and `getRecipient(m, contact)`. Adding a new channel = one new file + one map entry.
+- [x] **Telegram adapter** (`src/services/telegram.js`) — uses the Bot API, free, no carrier SIM needed. Bot token configurable globally via `TELEGRAM_BOT_TOKEN` env or per-client via `Client.telegramBotToken`. Contact needs `chatId`. Includes a `validateBotToken` helper for the UI.
+- [x] **Contact model** now stores `chatId` alongside `phone`
+- [x] **Client model** now stores `telegramBotToken` (never returned via API)
+- [x] **Campaign channel field** — `sms` or `telegram`; validation ensures telegram contacts have a `chatId`
+- [x] **CSV import** accepts `chatId` / `chat_id` / `telegramId`
 - [ ] **WhatsApp Cloud adapter** (Meta Business verification, $0.005-0.09/conversation)
 - [ ] **Viber / Line / Zalo adapters**
-- [ ] Unified contact model (one contact, many channel IDs)
-- [ ] Channel preference routing + fallbacks
 - [ ] Per-channel cost tracking + reporting
+- [ ] Channel preference routing + fallbacks
+- [ ] Bulk telegram-message e2e test (needs a real bot token — message @BotFather)
 
 ---
 
@@ -93,6 +103,15 @@
 - 10DLC registration (defer until real A2P demand)
 - Voice (different problem, different gateway)
 - MMS
+- iOS (Apple's background SMS restrictions make it not worth building)
+
+---
+
+## Region support
+
+The app is **region-agnostic by design**. Any Android phone with a local SIM can be paired — the SMS originates from that SIM in that country. The only VPS-side requirement is HTTPS reachability. Heavy-filter countries (China, Iran, NK) may need a VPN on the phone; otherwise it's plug-and-play worldwide. Telegram and WhatsApp adapters are also global.
+
+See `docs/ARCHITECTURE.md` for the channel adapter pattern.
 
 ---
 

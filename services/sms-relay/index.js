@@ -43,6 +43,18 @@ app.get('/devices', serverAuthMiddleware, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Admin: update a device (timezone, smsPerHour, send window, name, phoneNumber)
+app.patch('/devices/:id', serverAuthMiddleware, async (req, res, next) => {
+  try {
+    const allowed = ['name', 'phoneNumber', 'timezone', 'smsPerHour', 'sendWindowStartHour', 'sendWindowEndHour'];
+    const update = {};
+    for (const k of allowed) if (k in req.body) update[k] = req.body[k];
+    const d = await Device.findByIdAndUpdate(req.params.id, update, { new: true });
+    if (!d) return res.status(404).json({ error: 'not found' });
+    res.json(d.toSafeJSON());
+  } catch (e) { next(e); }
+});
+
 app.get('/devices/:token/status', async (req, res, next) => {
   try {
     const device = await Device.findOne({ token: req.params.token });
@@ -83,12 +95,27 @@ code{background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:12px;word-br
 // ===== Send SMS (from campaign-manager) =====
 app.post('/messages', serverAuthMiddleware, async (req, res, next) => {
   try {
-    const { deviceToken, to, message, clientId, campaignId } = req.body;
+    const { deviceToken, to, message, clientId, campaignId, ignoreWindow = false } = req.body;
     if (!deviceToken || !to || !message) {
       return res.status(400).json({ error: 'deviceToken, to, message required' });
     }
     const device = await Device.findOne({ token: deviceToken });
     if (!device) return res.status(404).json({ error: 'device not found' });
+
+    // Timezone check: don't send outside the device's configured send window
+    if (!ignoreWindow) {
+      const window = device.isWithinSendWindow();
+      if (!window.allowed) {
+        return res.status(429).json({ error: 'outside_send_window', reason: window.reason, retryable: true });
+      }
+    }
+
+    // Hourly cap check
+    device.resetHourlyIfNeeded();
+    if (device.smsThisHour >= device.smsPerHour) {
+      return res.status(429).json({ error: 'hourly_cap_reached', limit: device.smsPerHour, retryable: true });
+    }
+
     const msg = await Message.create({
       deviceId: device._id,
       to, message, clientId, campaignId,
@@ -151,6 +178,14 @@ app.post('/devices/:token/messages/:id/report', authMiddleware, async (req, res,
     if (status === 'delivered') msg.deliveredAt = new Date();
     if (status === 'failed') msg.failedAt = new Date();
     await msg.save();
+
+    // Increment the hourly counter on successful send
+    if (status === 'delivered' || status === 'sent') {
+      device.resetHourlyIfNeeded();
+      device.smsThisHour += 1;
+      await device.save();
+    }
+
     res.json({ ok: true, status: msg.status });
   } catch (e) { next(e); }
 });

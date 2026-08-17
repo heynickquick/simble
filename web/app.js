@@ -13,7 +13,10 @@ async function api(method, path, body) {
     },
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (r.status === 401) { localStorage.removeItem('simble_token'); location.reload(); }
+  if (r.status === 401) {
+    localStorage.removeItem('simble_token');
+    if (path !== '/api/auth/login') location.reload();
+  }
   const text = await r.text();
   let data; try { data = JSON.parse(text); } catch { data = text; }
   if (!r.ok) throw new Error(data?.error || r.statusText);

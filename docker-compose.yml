@@ -1,30 +1,16 @@
 services:
-  # Caddy removed — using existing system nginx with certbot for SSL.
-  # Run deploy/setup-nginx.sh on the VPS to set up the vhost.
-
-  textbee-api:
-    build: ./textbee/api
+  # Simble sms-relay (our own, no FCM/Firebase)
+  sms-relay:
+    build: ./services/sms-relay
     restart: unless-stopped
-    env_file: .env
+    env_file: ./services/sms-relay/.env
     networks: [internal]
     depends_on:
       - mongodb
-    environment:
-      - PORT=3001
     ports:
-      - "3010:3001"  # host:3010 → textbee-api:3001
+      - "4010:4010"  # host:4010 → sms-relay:4010
     expose:
-      - "3001"
-
-  textbee-web:
-    build: ./textbee/web
-    restart: unless-stopped
-    env_file: .env
-    networks: [internal]
-    ports:
-      - "3020:3000"  # host:3020 → textbee-web:3000
-    expose:
-      - "3000"
+      - "4010"
 
   mongodb:
     image: mongo:7
@@ -47,8 +33,9 @@ services:
     networks: [internal]
     depends_on:
       - mongodb
+      - sms-relay
     ports:
-      - "4000:4000"  # Direct access for testing. Use Caddy for prod.
+      - "4000:4000"  # Direct access for testing. Use nginx for prod.
     expose:
       - "4000"
 

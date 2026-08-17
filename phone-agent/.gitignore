@@ -1,0 +1,3 @@
+node_modules/
+.simble-agent.json
+*.log

@@ -1,0 +1,21 @@
+{
+  "name": "@simble/sms-relay",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Simble SMS relay — bridges campaign-manager to phones (no Firebase, no FCM)",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "mongoose": "^8.4.0",
+    "dotenv": "^16.4.5",
+    "axios": "^1.7.2",
+    "cors": "^2.8.5",
+    "morgan": "^1.10.0"
+  },
+  "engines": { "node": ">=20" }
+}

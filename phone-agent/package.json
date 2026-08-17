@@ -1,0 +1,15 @@
+{
+  "name": "simble-phone-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Simble phone agent — runs in Termux, polls sms-relay, sends SMS via Termux:API",
+  "main": "agent.js",
+  "scripts": {
+    "start": "node agent.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.2"
+  },
+  "engines": { "node": ">=20" }
+}

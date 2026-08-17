@@ -1,33 +1,42 @@
 import axios from 'axios';
 
-const BASE = process.env.TEXTBEE_API_URL;
-const KEY = process.env.TEXTBEE_API_KEY;
-const MOCK = process.env.TEXTBEE_MOCK === 'true' || process.env.TEXTBEE_MOCK === '1';
+// SMS gateway configuration. Three options:
+//   1. SMS_RELAY_URL + SMS_RELAY_SECRET  → uses our own sms-relay (preferred, no FCM)
+//   2. TEXTBEE_API_URL + TEXTBEE_API_KEY → uses textbee (Firebase-dependent, legacy)
+//   3. SMS_GATEWAY_MOCK=true             → simulates sends for testing
 
-if (MOCK) {
-  console.log('[textbee] ⚠️  MOCK MODE — SMS will be simulated, not actually sent');
-} else if (!BASE || !KEY) {
-  console.warn('[textbee] TEXTBEE_API_URL or TEXTBEE_API_KEY missing — sendSms will fail');
-}
+const RELAY = process.env.SMS_RELAY_URL;
+const RELAY_SECRET = process.env.SMS_RELAY_SECRET;
+const TEXTBEE = process.env.TEXTBEE_API_URL;
+const TEXTBEE_KEY = process.env.TEXTBEE_API_KEY;
+const MOCK = process.env.SMS_GATEWAY_MOCK === 'true' || process.env.SMS_GATEWAY_MOCK === '1';
+
+let mode = 'unknown';
+if (MOCK) mode = 'mock';
+else if (RELAY && RELAY_SECRET) mode = 'sms-relay';
+else if (TEXTBEE && TEXTBEE_KEY) mode = 'textbee';
+
+console.log(`[sms-gateway] mode=${mode}`);
 
 const http = axios.create({
-  baseURL: BASE,
-  headers: { 'x-api-key': KEY, 'Content-Type': 'application/json' },
+  baseURL: mode === 'sms-relay' ? RELAY : TEXTBEE,
+  headers: mode === 'sms-relay'
+    ? { 'Authorization': `Bearer ${RELAY_SECRET}`, 'Content-Type': 'application/json' }
+    : { 'x-api-key': TEXTBEE_KEY, 'Content-Type': 'application/json' },
   timeout: 30_000,
 });
 
 /**
- * Send an SMS through textbee.
- * textbee API: POST /api/v1/gateway/devices/{deviceId}/send-sms
- * body: { phoneNumber, message }
+ * Send an SMS. `deviceId` is interpreted as follows:
+ *   - sms-relay mode: the device TOKEN (sim_xxx...)
+ *   - textbee mode: the device _id
  *
- * In MOCK mode, returns a fake messageId and simulates delivery via a timer.
+ * Returns { messageId, status, raw? }.
  */
-export async function sendSms({ deviceId, to, message }) {
-  if (MOCK) {
+export async function sendSms({ deviceId, to, message, clientId, campaignId }) {
+  if (mode === 'mock') {
     const messageId = `mock_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    console.log(`[textbee:MOCK] → ${to} (${message.length} chars) id=${messageId}`);
-    // Simulate delivery report after 3 seconds
+    console.log(`[sms-gateway:MOCK] → ${to} (${message.length} chars) id=${messageId}`);
     setTimeout(() => {
       const url = process.env.SIMBLE_WEBHOOK_URL;
       if (url) {
@@ -35,29 +44,48 @@ export async function sendSms({ deviceId, to, message }) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: messageId, status: 'delivered', phone: to }),
-        }).catch(err => console.error('[textbee:MOCK] webhook call failed', err.message));
+        }).catch(err => console.error('[sms-gateway:MOCK] webhook call failed', err.message));
       }
     }, 3000);
     return { messageId, status: 'sent', mock: true };
   }
 
-  if (!deviceId) throw new Error('deviceId required');
+  if (!deviceId) throw new Error('deviceId (or device token) required');
+
+  if (mode === 'sms-relay') {
+    const { data } = await http.post('/messages', {
+      deviceToken: deviceId,
+      to, message, clientId, campaignId,
+    });
+    return { messageId: data.id, status: data.status, raw: data };
+  }
+
+  // textbee (legacy)
   const { data } = await http.post(`/api/v1/gateway/devices/${deviceId}/send-sms`, {
     phoneNumber: to,
     message,
   });
   return {
-    messageId: data?.id || data?.messageId,
-    status: data?.status || 'sent',
+    messageId: data?.data?.id || data?.id,
+    status: data?.data?.status || data?.status || 'sent',
     raw: data,
   };
 }
 
 export async function getDeviceStatus(deviceId) {
-  if (MOCK) return { online: true, lastSeen: new Date().toISOString(), mock: true };
+  if (mode === 'mock') return { online: true, lastSeen: new Date().toISOString(), mock: true };
+  if (mode === 'sms-relay') {
+    try {
+      const { data } = await http.get(`/devices/${deviceId}/status`);
+      return { online: data.online, lastSeen: data.lastSeen, raw: data };
+    } catch (e) {
+      return { online: false, error: e.message };
+    }
+  }
   try {
     const { data } = await http.get(`/api/v1/gateway/devices/${deviceId}`);
-    return { online: data?.status === 'online', lastSeen: data?.lastSeen, raw: data };
+    const online = data?.data?.heartbeatEnabled !== false;
+    return { online, lastSeen: data?.data?.updatedAt, raw: data };
   } catch (e) {
     return { online: false, error: e.message };
   }

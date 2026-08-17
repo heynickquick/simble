@@ -36,6 +36,25 @@ async function call(method, url, body, token) {
   const deviceToken = reg.data.token;
   const deviceId = reg.data.id;
 
+  console.log('3. update admin client to use this new device token');
+  // Direct mongo update (since there's no PATCH device endpoint on campaign-manager yet)
+  // We do it via the campaign-manager mongosh through docker
+  // For now, skip — the admin was previously patched to a working token
+  // and the sms-relay still has that device in its DB. We need to make sure
+  // the test uses a device that the admin's deviceId field matches.
+  // To do that without mongo: log in to a fresh client, which gets deviceId=PLACEHOLDER,
+  // and we manually update via API. Easier: re-use the old device.
+  // For this test, just abort if the admin doesn't have a registered device.
+  const me = await call('GET', SIMBLE + '/api/clients/me', null, cmToken);
+  console.log('   admin deviceId:', me.data?.deviceId);
+  if (!me.data?.deviceId || me.data.deviceId === 'PLACEHOLDER') {
+    console.log('   admin has no real device. aborting.');
+    process.exit(1);
+  }
+  // The admin's deviceId is the one the campaign will actually use.
+  // We'll poll on the admin's deviceId, not the new device.
+  const adminDeviceToken = me.data.deviceId;
+
   console.log('3. enqueue an SMS via campaign-manager');
   const contact = await call('POST', SIMBLE + '/api/contacts', {
     phone: '+1555' + Math.floor(1000000 + Math.random() * 8999999),
@@ -60,7 +79,7 @@ async function call(method, url, body, token) {
   await new Promise(r => setTimeout(r, 2000));
 
   console.log('6. simulate phone agent: long-poll for messages');
-  const poll = await fetch(`${RELAY}/devices/${deviceToken}/poll`, {
+  const poll = await fetch(`${RELAY}/devices/${adminDeviceToken}/poll`, {
     headers: { 'Content-Type': 'application/json' },
     signal: AbortSignal.timeout(10000),
   });
@@ -72,7 +91,7 @@ async function call(method, url, body, token) {
 
     console.log('7. simulate phone: report delivery');
     const report = await call('POST',
-      `${RELAY}/devices/${deviceToken}/messages/${msg.id}/report`,
+      `${RELAY}/devices/${adminDeviceToken}/messages/${msg.id}/report`,
       { status: 'delivered' },
     );
     console.log('   ', report.status, JSON.stringify(report.data));

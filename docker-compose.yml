@@ -9,6 +9,8 @@ services:
     networks: [internal]
     depends_on:
       - mongodb
+    ports:
+      - "3010:3000"  # host:3010 → textbee-api:3000
     expose:
       - "3000"
 
@@ -17,6 +19,8 @@ services:
     restart: unless-stopped
     env_file: .env
     networks: [internal]
+    ports:
+      - "3020:3000"  # host:3020 → textbee-web:3000
     expose:
       - "3000"
 

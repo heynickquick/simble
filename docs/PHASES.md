@@ -7,19 +7,26 @@
 ## Phase 1 — SMS gateway ✅ DONE (custom build, no third-party Android code)
 
 **What got built (all on our own code, no textbee, no Firebase, no FCM):**
-- [x] **sms-relay service** (`services/sms-relay/`) — Node.js Express + Mongoose. Long-poll API for phones, server-to-server auth for campaign-manager, MongoDB for queue + device registry.
-- [x] **Phone agent** (`phone-agent/`) — ~120 LOC Node.js script that runs in Termux on the friend's Android phone. Polls the relay, sends SMS via Termux:API, reports back, heartbeats.
-- [x] **textbee removed** entirely from the stack (deleted from VPS, removed from compose, no remaining code references).
-- [x] **End-to-end validated** on the public domain: queue → poll → send → report → stats, all working.
-- [x] **No FCM, no Firebase, no third-party Android code.** ~250 LOC total (relay + agent) is all the Android-side code that touches the SIM.
+- [x] **sms-relay service** (`services/sms-relay/`) — Node.js Express + Mongoose. Long-poll API for phones, server-to-server auth for campaign-manager, MongoDB for queue + device registry, **QR pairing endpoint** at `/devices/:token/qr`.
+- [x] **Android app** (`android-app/`) — Native Kotlin, ~600 LOC. Foreground service polls relay every 5s, sends via Android SmsManager, reports back. QR scanner for pairing, auto-start on boot, battery-optimization prompt, persistent notification.
+- [x] **Phone agent** (`phone-agent/`) — ~120 LOC Node.js script for Termux, kept as a fallback for advanced users.
+- [x] **textbee removed** entirely from the stack.
+- [x] **End-to-end validated** on the public domain: queue → poll → send → report → stats, all working. QR pairing works.
+- [x] **No FCM, no Firebase, no third-party Android code in the gateway.** The Android app is fully our code (Apache 2.0 / MIT-style license, fully auditable).
 
-**To go live (needs a real phone, not a code change):**
-- [ ] Install Termux + Termux:API on a spare Android phone (from F-Droid, not Play Store)
-- [ ] Run `phone-agent/agent.js` on the phone with `RELAY_URL` and `DEVICE_TOKEN` set
-- [ ] Insert a Tello/Mint SIM
+**Two ways to deploy on a phone:**
+1. **Recommended (for non-technical users)**: build `android-app/` with Android Studio, sideload the APK, scan QR, done. No F-Droid, no Termux.
+2. **Advanced (for headless deployments)**: install Termux + Termux:API from F-Droid, run `phone-agent/agent.js`. No APK build needed.
+
+**To go live:**
+- [ ] Build the APK: `cd android-app && ./build.sh` (or open in Android Studio)
+- [ ] Sideload APK on a spare Android phone
+- [ ] Insert Tello/Mint SIM
+- [ ] Open Simble web UI → register a device → open the QR URL
+- [ ] Open Simble Gateway app on the phone → "Set up" → "Scan QR code" → point at the screen
 - [ ] Ship the phone to your friend in the USA
-- [ ] Grant Termux:API the SMS permission
-- [ ] (Optional) Set up `termux-boot` for auto-start on reboot
+- [ ] Disable battery optimization on the phone
+- [ ] Send a test campaign → it shows up in the app's notification → phone sends the SMS → reports back
 
 ---
 
